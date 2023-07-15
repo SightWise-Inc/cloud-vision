@@ -18,8 +18,12 @@ import time
 # %%
 from pathlib import Path
 
-# ROOT = os.path.dirname(__file__) # NOTE doesn't work in Jupyter
-ROOT = Path().resolve()
+ROOT = os.path.dirname(__file__) # NOTE doesn't work in Jupyter
+# ROOT = Path().resolve()
+ROOT
+
+# %%
+BUFFER_SIZE = 3
 
 # %%
 logger = logging.getLogger("pc")
@@ -38,75 +42,101 @@ class VideoTransformTrack(MediaStreamTrack):
         super().__init__()  # don't forget this!
         self.track = track
         self.transform = transform
+        self.buffer = asyncio.Queue(maxsize=BUFFER_SIZE)
+        self.loop = asyncio.ensure_future(self.process())
+        self.result = None
 
     async def recv(self):
         frame = await self.track.recv()
+        if self.buffer.full():
+            self.buffer.get_nowait() # discard previous frame
+        await self.buffer.put(frame)
+        # print("added frame")
+        if self.result: return self.result
+        else: return frame
 
-        if self.transform == "cartoon":
-            img = frame.to_ndarray(format="bgr24")
+    async def process(self):
+        # print("PROCESS() INVOKED.") # DEBUG
+        while True:
+            try: 
+                # print("processing") # DEBUG
 
-            # prepare color
-            img_color = cv2.pyrDown(cv2.pyrDown(img))
-            for _ in range(6):
-                img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
-            img_color = cv2.pyrUp(cv2.pyrUp(img_color))
+                frame = await self.buffer.get()
 
-            # prepare edges
-            img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-            img_edges = cv2.adaptiveThreshold(
-                cv2.medianBlur(img_edges, 7),
-                255,
-                cv2.ADAPTIVE_THRESH_MEAN_C,
-                cv2.THRESH_BINARY,
-                9,
-                2,
-            )
-            img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
+                if self.transform == "cartoon":
+                    img = frame.to_ndarray(format="bgr24")
 
-            # combine color and edges
-            img = cv2.bitwise_and(img_color, img_edges)
+                    # prepare color
+                    img_color = cv2.pyrDown(cv2.pyrDown(img))
+                    for _ in range(6):
+                        img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
+                    img_color = cv2.pyrUp(cv2.pyrUp(img_color))
 
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-        elif self.transform == "edges":
-            # perform edge detection
-            img = frame.to_ndarray(format="bgr24")
-            img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+                    # prepare edges
+                    img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+                    img_edges = cv2.adaptiveThreshold(
+                        cv2.medianBlur(img_edges, 7),
+                        255,
+                        cv2.ADAPTIVE_THRESH_MEAN_C,
+                        cv2.THRESH_BINARY,
+                        9,
+                        2,
+                    )
+                    img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
 
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-        elif self.transform == "long":
-            # wait a second.
-            time.sleep(0.1)
-            
-            img = frame.to_ndarray(format="bgr24")
-            img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+                    # combine color and edges
+                    img = cv2.bitwise_and(img_color, img_edges)
 
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-        elif self.transform == "rotate":
-            # rotate image
-            img = frame.to_ndarray(format="bgr24")
-            rows, cols, _ = img.shape
-            M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
-            img = cv2.warpAffine(img, M, (cols, rows))
+                    # rebuild a VideoFrame, preserving timing information
+                    new_frame = VideoFrame.from_ndarray(img, format="bgr24")
+                    new_frame.pts = frame.pts
+                    new_frame.time_base = frame.time_base
+                    # return new_frame
+                    self.result = new_frame
+                elif self.transform == "edges":
+                    # perform edge detection
+                    img = frame.to_ndarray(format="bgr24")
+                    img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
 
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-        else:
-            return frame
+                    # rebuild a VideoFrame, preserving timing information
+                    new_frame = VideoFrame.from_ndarray(img, format="bgr24")
+                    new_frame.pts = frame.pts
+                    new_frame.time_base = frame.time_base
+                    # return new_frame
+                    self.result = new_frame
+                elif self.transform == "long":
+                    # wait a second.
+                    asyncio.sleep(0.1)
+                    
+                    img = frame.to_ndarray(format="bgr24")
+                    img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+
+                    # rebuild a VideoFrame, preserving timing information
+                    new_frame = VideoFrame.from_ndarray(img, format="bgr24")
+                    new_frame.pts = frame.pts
+                    new_frame.time_base = frame.time_base
+                    # return new_frame
+                    self.result = new_frame
+                elif self.transform == "rotate":
+                    # rotate image
+                    img = frame.to_ndarray(format="bgr24")
+                    rows, cols, _ = img.shape
+                    M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
+                    img = cv2.warpAffine(img, M, (cols, rows))
+
+                    # rebuild a VideoFrame, preserving timing information
+                    new_frame = VideoFrame.from_ndarray(img, format="bgr24")
+                    new_frame.pts = frame.pts
+                    new_frame.time_base = frame.time_base
+                    # return new_frame
+                    self.result = new_frame
+                else:
+                    # return frame
+                    # self.result = new_frame
+                    # print('no transform') # DEBUG
+                    pass
+            except Exception as e:
+                print("EXCEPTION:", e)
 
 # %%
 async def index(request):
@@ -133,7 +163,7 @@ async def offer(request):
     log_info("Created for %s", request.remote)
 
     # prepare local media
-    player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
+    # player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
     if args.record_to:
         recorder = MediaRecorder(args.record_to)
     else:
@@ -158,7 +188,7 @@ async def offer(request):
         log_info("Track %s received", track.kind)
 
         if track.kind == "audio":
-            pc.addTrack(player.audio)
+            # pc.addTrack(player.audio)
             recorder.addTrack(track)
         elif track.kind == "video":
             pc.addTrack(
