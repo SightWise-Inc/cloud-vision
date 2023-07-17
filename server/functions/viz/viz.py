@@ -1,8 +1,12 @@
+# basics
+import os
 import numpy as np
 import matplotlib.pyplot as plt
+# computer vision
 import cv2
-import os
-
+# local modules
+# from utils import distance # dev
+from functions.viz.utils import distance # prod
 
 # Highlight image
 def highlight(img, pt1, pt2):
@@ -39,6 +43,53 @@ def apply_highlight(img, weak_mask, strong_mask):
 
     highlighted = np.where(weak_mask, weak, img)
     highlighted = np.where(strong_mask, strong, highlighted)
+
+    return highlighted
+
+
+# TODO compute these in vector computations & logical operators
+# but before that, profile the server. 
+# and before that, finish everything.
+# 꿀팁: 로직에 대해 그림을 그리면, 훨씬 잘 이해하고, 훨씬 빨리 코딩할 수 있음. 
+    # 화이트보드 = 물리, 수학, 전략의 친구
+def draw_viz(img, dets=None, texts=None, selected=None):
+
+    # highlight mask
+    weak = np.zeros(shape=img.shape)
+    strong = np.zeros(shape=img.shape)
+    center = (int(img.shape[1]/2), int(img.shape[0]/2))
+
+    # iterate through each text
+    for i, r in enumerate(texts): 
+        # print(r)
+
+        # points
+        pt1 = [int(n) for n in r[0][0]]
+        pt2 = [int(n) for n in r[0][2]]
+
+        # add highlight
+        try: weak = add_mask(weak, pt1, pt2)
+        except Exception: print('highlight error')
+
+        # select
+        dist = distance([pt1, pt2], center)
+        if dist < min_dist: 
+            min_dist = dist
+            selection = r
+
+    # iterate through each objects 
+    # (color them in a consistent, aesthetic manner)
+
+    # selected text/object
+    if selection:
+        pt1, pt2 = [int(n) for n in selection[0][0]], [int(n) for n in selection[0][2]]
+        pt1, pt2 = tuple(pt1), tuple(pt2) # OpenCV's rectangle doesn't like coordinates given in list
+        strong = add_mask(strong, pt1, pt2)
+        img = cv2.rectangle(img, pt1, pt2, (255,255,255), 15) # outline
+
+    # visualization
+    img = cv2.rectangle(img, center, center, (0,50,0), 20) # center
+    highlighted = apply_highlight(img, weak, strong)
 
     return highlighted
 

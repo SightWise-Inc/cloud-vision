@@ -8,8 +8,10 @@ from av import VideoFrame
 import cv2
 # local modules
 from functions.object.object import ObjectDetector
+from functions.text.text import OCR
 from functions.viz.viz import highlight, apply_highlight, add_mask
-from functions.utils.utils import distance, imresize
+from functions.utils.utils import imresize
+
 
 BUFFER_SIZE = 3
 
@@ -28,6 +30,7 @@ class VideoTransformTrack(MediaStreamTrack):
         self.loop = asyncio.ensure_future(self.process())
         self.result = None
         self.object = ObjectDetector()
+        self.OCR = OCR
 
     async def recv(self):
         frame = await self.track.recv()
@@ -72,6 +75,11 @@ class VideoTransformTrack(MediaStreamTrack):
                     edge = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
                     result = edge
 
+                # elif self.transform == "highlight":
+                #     weak = add_mask(np.zeros(shape=img.shape, dtype=np.uint8), (100, 100), (300, 300))
+                #     strong = add_mask(np.zeros(shape=img.shape, dtype=np.uint8), (200, 200), (400, 400))
+                #     highlighted = apply_highlight(img, weak, strong)
+                #     result = highlighted
                 elif self.transform == "highlight":
                     weak = add_mask(np.zeros(shape=img.shape, dtype=np.uint8), (100, 100), (300, 300))
                     strong = add_mask(np.zeros(shape=img.shape, dtype=np.uint8), (200, 200), (400, 400))
@@ -79,6 +87,7 @@ class VideoTransformTrack(MediaStreamTrack):
                     result = highlighted
 
                 elif self.transform == "text":
+                    texts = self.OCR.detect(img)
                     weak = add_mask(np.zeros(shape=img.shape, dtype=np.uint8), (100, 100), (300, 300))
                     strong = add_mask(np.zeros(shape=img.shape, dtype=np.uint8), (200, 200), (400, 400))
                     highlighted = apply_highlight(img, weak, strong)
