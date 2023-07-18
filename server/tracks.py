@@ -11,7 +11,7 @@ from av import AudioFrame
 import cv2
 # local modules
 from functions.object.object import ObjectDetector
-from functions.text.text import OCR
+from functions.text.text import TextDetector
 from functions.viz.viz import highlight, apply_highlight, add_mask, draw_viz
 from functions.utils.utils import imresize
 from functions.hand.hand import hands, visualize_hands
@@ -34,7 +34,7 @@ class VideoTransformTrack(MediaStreamTrack):
         self.loop = asyncio.ensure_future(self.process())
         self.result = None
         self.object = ObjectDetector()
-        self.OCR = OCR
+        self.OCR = TextDetector()
 
     async def recv(self):
         frame = await self.track.recv()
@@ -96,14 +96,14 @@ class VideoTransformTrack(MediaStreamTrack):
                     # TODO make pipeline non-blocking (so that image itself updates while OCR attempts to catch up)
                     # texts = self.OCR(img)
                     # result = img
-                    texts, elapsed = await asyncio.to_thread(self.OCR, img)
+                    texts = await asyncio.to_thread(self.OCR.detect, img)
 
                     # weak = add_mask(np.zeros(shape=img.shape, dtype=np.uint8), (100, 100), (300, 300))
                     # strong = add_mask(np.zeros(shape=img.shape, dtype=np.uint8), (200, 200), (400, 400))
                     # highlighted = apply_highlight(img, weak, strong)
                     # result = highlighted
                     
-                    result = draw_viz(img, texts=texts)
+                    result = draw_viz(img, texts=texts[0])
 
                 elif self.transform == "object":
                     dets = self.object.detect(img) # detections
