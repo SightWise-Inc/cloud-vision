@@ -8,6 +8,8 @@ from rapidocr_onnxruntime import RapidOCR
 
 
 OCR = RapidOCR(config_path='./server/functions/text/custom.yaml')
+# OCR = RapidOCR(config_path='./wrongpathobviously')
+# OCR = RapidOCR()
 
 def main():
     img = cv2.imread('./tests/demo_images/demodemo2.jpg')

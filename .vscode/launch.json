@@ -5,6 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Create 🐸TTS Container",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "docker create --name coqui_tts --publish 5002:5002 --gpus all --entrypoint /bin/bash -i ghcr.io/coqui-ai/tts",
+        },
+        // {
+        //     "name": "Start 🐸TTS Server (doesn't work)",
+        //     "type": "docker", 
+        //     "request": "launch",
+        //     "containerName": "coqui_tts",
+        //     "preLaunchTask": "Start TTS Server",
+        //     "postDebugTask": "Stop coqui_tts Container",
+        // }, 
+        {
+            "name": "Start 🐸TTS Server",
+            "type": "node-terminal", 
+            "request": "launch",
+            "command": "docker start coqui_tts",
+            // "preLaunchTask": "Start TTS Server",
+            ""
+            "postDebugTask": "Stop coqui_tts Container",
+        }, 
+        {
             "name": "Debug Current File",
             "type": "python",
             "request": "launch",
@@ -22,9 +45,9 @@
         },
         {
             "name": "Start Localtunnel",
+            "type": "node-terminal",
             "request": "launch",
             "command": "lt --port 8080 --subdomain sightwise-vision-cloud",
-            "type": "node-terminal"
         }, 
     ],
     "compounds": [

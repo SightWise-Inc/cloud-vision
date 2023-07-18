@@ -52,30 +52,35 @@ def apply_highlight(img, weak_mask, strong_mask):
 # and before that, finish everything.
 # 꿀팁: 로직에 대해 그림을 그리면, 훨씬 잘 이해하고, 훨씬 빨리 코딩할 수 있음. 
     # 화이트보드 = 물리, 수학, 전략의 친구
-def draw_viz(img, dets=None, texts=None, selected=None):
+def draw_viz(img, dets=None, texts=None, selection=None):
+
+    min_dist = 200 # minimum selection distance
 
     # highlight mask
     weak = np.zeros(shape=img.shape)
     strong = np.zeros(shape=img.shape)
     center = (int(img.shape[1]/2), int(img.shape[0]/2))
 
-    # iterate through each text
-    for i, r in enumerate(texts): 
-        # print(r)
+    if texts:
 
-        # points
-        pt1 = [int(n) for n in r[0][0]]
-        pt2 = [int(n) for n in r[0][2]]
+        # iterate through each text
+        for i, r in enumerate(texts): 
+            # print(r)
 
-        # add highlight
-        try: weak = add_mask(weak, pt1, pt2)
-        except Exception: print('highlight error')
+            # points
+            pt1 = [int(n) for n in r[0][0]]
+            pt2 = [int(n) for n in r[0][2]]
 
-        # select
-        dist = distance([pt1, pt2], center)
-        if dist < min_dist: 
-            min_dist = dist
-            selection = r
+            # add highlight
+            try: weak = add_mask(weak, pt1, pt2)
+            except Exception: print('highlight error')
+
+            # # select
+            # dist = distance([pt1, pt2], center)
+            # if dist < min_dist: 
+            #     min_dist = dist
+            #     selection = r
+            # NOTE move the selection logic elsewhere.
 
     # iterate through each objects 
     # (color them in a consistent, aesthetic manner)
