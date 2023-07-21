@@ -13,8 +13,8 @@ import cv2
 from functions.object.object import ObjectDetector
 from functions.text.text import TextDetector
 from functions.viz.viz import highlight, apply_highlight, add_mask, draw_viz
-from functions.utils.utils import imresize
-from functions.hand.hand import hands, visualize_hands
+from functions.utils.utils import imresize, select
+from functions.hand.hand import mp_hands, visualize_hands
 
 
 BUFFER_SIZE = 1
@@ -27,14 +27,17 @@ class VideoTransformTrack(MediaStreamTrack):
     kind = "video"
 
     def __init__(self, track, transform):
-        super().__init__()  # don't forget this!
+        super().__init__()
         self.track = track
         self.transform = transform
+        # pipeline
         self.buffer = asyncio.Queue(maxsize=BUFFER_SIZE)
         self.loop = asyncio.ensure_future(self.process())
         self.result = None
+        # computer vision models
         self.object = ObjectDetector()
-        self.OCR = TextDetector()
+        self.text = TextDetector()
+        self.hand = mp_hands
 
     async def recv(self):
         frame = await self.track.recv()
@@ -106,13 +109,31 @@ class VideoTransformTrack(MediaStreamTrack):
                     result = draw_viz(img, texts=texts[0])
 
                 elif self.transform == "object":
-                    dets = self.object.detect(img) # detections
-                    drawn = self.object.draw(img, *dets)
+                    objects = self.object.detect(img) # detections
+                    drawn = self.object.draw(img, *objects)
                     result = drawn
 
                 elif self.transform == "hand":
-                    mp_results = hands.process(img)
-                    result = visualize_hands(mp_results, img)
+                    hands = hands.process(img)
+                    result = visualize_hands(hands, img)
+
+                elif self.transform == "mvp":
+                    # TODO selection temporal substance
+                    # TODO parse information into a consistent data type (possibly dict. verbose is good.)
+                    # NOTE 이거 앱으로 어떻게 만들지 진짜? ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ
+
+                    objects = await asyncio.to_thread(self.object.detect, img)
+                    texts = await asyncio.to_thread(self.text.detect, img)
+                    hands = await asyncio.to_thread(hands.process, img)
+
+                    selected = select(objects, texts, hands)
+
+                    # TODO: combine all viz into draw_viz
+                    drawn = draw_viz(img, objects=objects, texts=texts[0], hands=hands, selection=selected)
+                    # drawn = self.object.draw(drawn, *objects) # temp
+                    # drawn = visualize_hands(hands, drawn) # temp
+                    
+                    result = drawn
                     
                 elif self.transform == "rotate":
                     # rotate image

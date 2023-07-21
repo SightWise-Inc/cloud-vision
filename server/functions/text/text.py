@@ -19,7 +19,8 @@ class TextDetector():
         self.ocr = PaddleOCR(lang="en", show_log = False)
 
     def detect(self, img):
-        return self.ocr.ocr(img, cls=False)
+        return self.ocr.ocr(img, cls=False)[0]
+        # 
 
 
 

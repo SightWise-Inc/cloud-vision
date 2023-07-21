@@ -1,4 +1,13 @@
 # beta-server
+
+Note: development requires the installation of package as editable mode using pip. Reference [here](https://stackoverflow.com/questions/6323860/sibling-package-imports). 
+
+`TODO`: automate readme documentation w/ supplied structure (purpose, description, env setup, examples...) 
+
+- try to learn from the best readmes
+
+Folder Structure
+
 ```
 cloud-vision
 ├─ server

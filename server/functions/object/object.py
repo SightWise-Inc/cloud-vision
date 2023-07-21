@@ -8,18 +8,27 @@ import cv2
 from PIL import Image
 import onnxruntime
 # local modules
-from functions.object.classes import CLASSES # NOTE absolute import (for prod)
-from functions.object.utils import nms, compute_iou, xywh2xyxy
-# from classes import CLASSES # NOTE relative import (for dev)
+# # NOTE absolute import from server-level scripts (for prod)
+# from functions.object.classes import CLASSES 
+# from functions.object.utils import nms, compute_iou, xywh2xyxy
+# # NOTE relative import (for dev) (deprecated)
+# from classes import CLASSES 
 # from utils import nms, compute_iou, xywh2xyxy
+# NOTE absolute import from package (for dev)
+from server.functions.object.classes import CLASSES 
+from server.functions.object.utils import nms, compute_iou, xywh2xyxy
 # NOTE utils func ideas: letterbox, scale_coords, plot_one_box
 
 
 opt_options = onnxruntime.SessionOptions()
 EP_list = ['CUDAExecutionProvider', 'CPUExecutionProvider']
 
-model_path = './models/yolov8n_640.onnx' # when used as a module
-model_path2 = './server/functions/object/models/yolov8n_640.onnx' # when used as a script (dev)
+# nano
+# model_path = './models/yolov8n_640.onnx' # when used as a module
+# model_path2 = './server/functions/object/models/yolov8n_640.onnx' # when used as a script (dev)
+# medium
+model_path = './models/yolov8m_640.onnx' # when used as a module
+model_path2 = './server/functions/object/models/yolov8m_640.onnx' # when used as a script (dev)
 
 try: 
     session = onnxruntime.InferenceSession(model_path, opt_options, providers=EP_list)
@@ -101,7 +110,8 @@ class ObjectDetector:
         # print(indices) # DEBUG
 
         # print(boxes[indices], scores[indices], class_ids[indices]) # DEBUG
-        result = (boxes, scores, class_ids, indices)
+        # result = (boxes, scores, class_ids, indices)
+        result = {'boxes': boxes, 'scores': scores, 'class_ids': class_ids, 'indices': indices}
         return result
 
     def draw(self, image, boxes, scores, class_ids, indices):
