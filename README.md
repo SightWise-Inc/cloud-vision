@@ -66,13 +66,11 @@ cloud-vision
    │  ├─ demo_7.png
    │  ├─ demo_8.jpg
    │  ├─ demo_9.jpg
-   │  └─ desktop.ini
    ├─ live_braille_2.ipynb
    ├─ live_braille_2.py
    ├─ mimic3.ipynb
    ├─ rapidocr_test.ipynb
    ├─ test_images
-   │  ├─ desktop.ini
    │  ├─ test_backpack.jpg
    │  ├─ test_desk.jpg
    │  ├─ test_guy.jpg

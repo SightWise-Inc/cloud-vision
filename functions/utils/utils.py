@@ -4,14 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 
-# DEBUG dev
-from server.functions.object.object import ObjectDetector
-from server.functions.text.text import TextDetector
-from server.functions.hand.hand import mp_hands, visualize_hands
-from server.functions.viz.viz import highlight, apply_highlight, add_mask, draw_viz
 
-
-MIN_DIST = 200
+# MIN_DIST = 200
+MIN_DIST = 1000
 
 
 # Distance to rectangle
@@ -48,15 +43,30 @@ def select(objects, texts, target=None):
     min_dist = MIN_DIST
 
     if objects['boxes'].size > 0:
-        for idx, object in enumerate(objects):
-            print(object) # DEBUG
-            # extract points
-            pt1 = [int(n) for n in object['boxes'][0][0]]
-            pt2 = [int(n) for n in object['boxes'][0][2]]
-            # select
+
+        # OPTION 1
+        # for idx, object in enumerate(objects['boxes']):
+        #     print(object) # DEBUG
+        #     # extract points
+        #     pt1 = [int(n) for n in object[0]]
+        #     pt2 = [int(n) for n in object[2]]
+        #     # select
+
+        # OPTION 2 (don't fully understand this one)
+        boxes = objects['boxes']
+        scores = objects['scores']
+        class_ids = objects['class_ids']
+        indices = objects['indices']
+        for (bbox, score, label) in zip(xywh2xyxy(boxes[indices]), scores[indices], class_ids[indices]):
+
+            print(label, bbox) # DEBUG
+            pt1 = [bbox[0], bbox[1]]
+            pt2 = [bbox[2], bbox[3]]
+
             dist = distance([pt1, pt2], target)
+            print('Object', label, ':', dist) # DEBUG
             if dist < min_dist: 
-                closest = text
+                closest = { 'box': [pt1, pt2], 'name': label }
                 min_dist = dist
 
     if texts:
@@ -67,8 +77,10 @@ def select(objects, texts, target=None):
             pt2 = [int(n) for n in text[0][2]]
             # select
             dist = distance([pt1, pt2], target)
+            print('Text', text[1], ':', dist) # DEBUG
             if dist < min_dist: 
-                closest = text
+                # closest = text
+                closest = { 'box': [pt1, pt2], 'name': text[1] } # hopefully this works
                 min_dist = dist
 
     return closest
@@ -142,24 +154,29 @@ def test_selection(img):
     text = TextDetector()
     texts = text.detect(img)
 
-    hand = mp_hands
-    hands = mp_hands.process(img).multi_hand_landmarks
-    target = hands
-    
-    selection = select(objects, texts, target)
-    if selection: print(selection)
+    hand = HandDetector()
+    hand_ = hand.detect(img, select='naive')
+    target = hand.position(hand_)
 
-    drawn = object.draw(img, objects['boxes'], objects['scores'], objects['class_ids'], objects['indices'])
-    drawn = draw_viz(drawn, dets=objects, texts=texts, hands=hands, selection=selection)
+    selection = select(objects, texts, target)
+    if selection: print('Selection:', selection)
+
+    drawn = draw_viz(img, objects=objects, texts=texts, hands=hand_, selection=selection, cursor=target)
+
     plt.imshow(drawn)
     plt.show()
 
 
 def main():
+    from server.functions.object.object import ObjectDetector, xywh2xyxy
+    from server.functions.text.text import TextDetector
+    from server.functions.hand.hand import HandDetector
+    from server.functions.viz.viz import highlight, apply_highlight, add_mask, draw_viz
+
     # folder = './tests/test_images/text/'
     # filename = 'demodemo2.jpg'
     folder = './tests/test_images/Selection/Savanna/'
-    filename = 'Selection-Savanna-BigRoadSign.jpg'
+    filename = 'Selection-Savanna-BigElephant.jpg'
     # folder = './tests/test_images/'
     # filename = 'test_desk.jpg'
     img = cv2.imread(folder+filename)

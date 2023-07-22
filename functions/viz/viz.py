@@ -5,10 +5,16 @@ import matplotlib.pyplot as plt
 # computer vision
 import cv2
 # local modules
-# from utils import distance # dev (depr.)
-from server.functions.viz.utils import distance # dev
-# from functions.viz.utils import distance # prod
-from server.functions.hand.hand import visualize_hands
+
+# # (DEV) absolute import from package
+# from server.functions.viz.utils import distance 
+# from server.functions.object.object import draw
+# from server.functions.hand.hand import visualize_hands
+
+# (PROD) absolute import from server-level scripts
+from functions.viz.utils import distance
+from functions.object.object import draw
+from functions.hand.hand import visualize_hands
 
 # Highlight image
 def highlight(img, pt1, pt2):
@@ -52,9 +58,7 @@ def apply_highlight(img, weak_mask, strong_mask):
 # TODO compute these in vector computations & logical operators
 # but before that, profile the server. 
 # and before that, finish everything.
-# 꿀팁: 로직에 대해 그림을 그리면, 훨씬 잘 이해하고, 훨씬 빨리 코딩할 수 있음. 
-    # 화이트보드 = 물리, 수학, 전략의 친구
-def draw_viz(img, dets=None, texts=None, hands=None, selection=None):
+def draw_viz(img, objects=None, texts=None, hands=None, selection=None, cursor=None):
 
     # initialize highlighting masks
     weak = np.zeros(shape=img.shape)
@@ -63,6 +67,9 @@ def draw_viz(img, dets=None, texts=None, hands=None, selection=None):
 
     # iterate through each objects 
     # (color them in a consistent, aesthetic manner)
+
+    if objects: 
+        drawn = draw(img, objects['boxes'], objects['scores'], objects['class_ids'], objects['indices'])
 
     if texts:
         # iterate through each text
@@ -80,14 +87,22 @@ def draw_viz(img, dets=None, texts=None, hands=None, selection=None):
 
     # selected text/object
     if selection:
-        pt1, pt2 = [int(n) for n in selection[0][0]], [int(n) for n in selection[0][2]]
+        # pt1, pt2 = [int(n) for n in selection[0][0]], [int(n) for n in selection[0][2]]
+        pt1, pt2 = [int(n) for n in selection['box'][0]], [int(n) for n in selection['box'][1]]
         pt1, pt2 = tuple(pt1), tuple(pt2) # OpenCV's rectangle doesn't like coordinates given in list
         strong = add_mask(strong, pt1, pt2)
         img = cv2.rectangle(img, pt1, pt2, (255,255,255), 15) # outline
 
+    # selection cursor
+    if cursor:
+        # cursor = [int(cursor[0]*img.shape[0]), int(cursor[1]*img.shape[1])]
+        # cursor = [int(cursor[1]*img.shape[1]), int(cursor[0]*img.shape[0])]
+        # cursor = [int(cursor[0]*img.shape[1]), int(cursor[1]*img.shape[0])]
+        print('cursor:', cursor)
+        img = cv2.rectangle(img, cursor, cursor, (0,100,0), 20)
+
     # visualization
     # img = cv2.rectangle(img, pt1, pt2, (255,255,255), 15) # TODO add outline to everything!
-    # img = cv2.rectangle(img, center, center, (0,50,0), 20)
     highlighted = apply_highlight(img, weak, strong)
 
     return highlighted

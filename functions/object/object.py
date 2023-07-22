@@ -8,15 +8,15 @@ import cv2
 from PIL import Image
 import onnxruntime
 # local modules
-# # NOTE absolute import from server-level scripts (for prod)
-# from functions.object.classes import CLASSES 
-# from functions.object.utils import nms, compute_iou, xywh2xyxy
-# # NOTE relative import (for dev) (deprecated)
-# from classes import CLASSES 
-# from utils import nms, compute_iou, xywh2xyxy
-# NOTE absolute import from package (for dev)
-from server.functions.object.classes import CLASSES 
-from server.functions.object.utils import nms, compute_iou, xywh2xyxy
+
+# NOTE absolute import from server-level scripts (for prod)
+from functions.object.classes import CLASSES 
+from functions.object.utils import nms, compute_iou, xywh2xyxy
+# # NOTE absolute import from package (for dev)
+
+# from server.functions.object.classes import CLASSES 
+# from server.functions.object.utils import nms, compute_iou, xywh2xyxy
+
 # NOTE utils func ideas: letterbox, scale_coords, plot_one_box
 
 
@@ -114,26 +114,29 @@ class ObjectDetector:
         result = {'boxes': boxes, 'scores': scores, 'class_ids': class_ids, 'indices': indices}
         return result
 
-    def draw(self, image, boxes, scores, class_ids, indices):
-        image = image.copy()
-        for (bbox, score, label) in zip(xywh2xyxy(boxes[indices]), scores[indices], class_ids[indices]):
-            bbox = bbox.round().astype(np.int32).tolist()
-            cls_id = int(label)
-            cls = CLASSES[cls_id]
-            color = (0,255,0)
-            cv2.rectangle(image, tuple(bbox[:2]), tuple(bbox[2:]), color, 2)
-            cv2.putText(image,
-                        f'{cls}:{int(score*100)}', (bbox[0], bbox[1] - 2),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.60, [225, 255, 255],
-                        thickness=1)
-        return image
-    
+
+
+def draw(image, boxes, scores, class_ids, indices):
+    image = image.copy()
+    for (bbox, score, label) in zip(xywh2xyxy(boxes[indices]), scores[indices], class_ids[indices]):
+        bbox = bbox.round().astype(np.int32).tolist()
+        cls_id = int(label)
+        cls = CLASSES[cls_id]
+        color = (0,255,0)
+        cv2.rectangle(image, tuple(bbox[:2]), tuple(bbox[2:]), color, 2)
+        cv2.putText(image,
+                    f'{cls}:{int(score*100)}', (bbox[0], bbox[1] - 2),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.60, [225, 255, 255],
+                    thickness=1)
+    return image
+
+
 def main():
     object = ObjectDetector()
     image = cv2.imread('./tests/test_images/test_guy.jpg')
     result = object.detect(image)
-    drawn = object.draw(image, *result)
+    drawn = draw(image, *result)
     plt.imshow(cv2.cvtColor(drawn, cv2.COLOR_BGR2RGB))
     plt.show()
     print()

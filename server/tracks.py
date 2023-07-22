@@ -14,7 +14,7 @@ from functions.object.object import ObjectDetector
 from functions.text.text import TextDetector
 from functions.viz.viz import highlight, apply_highlight, add_mask, draw_viz
 from functions.utils.utils import imresize, select
-from functions.hand.hand import mp_hands, visualize_hands
+from functions.hand.hand import HandDetector
 
 
 BUFFER_SIZE = 1
@@ -37,7 +37,7 @@ class VideoTransformTrack(MediaStreamTrack):
         # computer vision models
         self.object = ObjectDetector()
         self.text = TextDetector()
-        self.hand = mp_hands
+        self.hand = HandDetector()
 
     async def recv(self):
         frame = await self.track.recv()
@@ -114,24 +114,26 @@ class VideoTransformTrack(MediaStreamTrack):
                     result = drawn
 
                 elif self.transform == "hand":
-                    hands = hands.process(img)
-                    result = visualize_hands(hands, img)
+                    hands = self.hand.detect(img, select='naive')
+                    result = self.hand.visualize_hands(hands, img)
 
+                # TODO selection temporal substance
+                # TODO parse information into a consistent data type (possibly dict. verbose is good.)
+                    # NOTE columnwise selection is a req, so don't make everything a dict/json though
+                        # NOTE option 1) keep a well-documented, consistent ndarray
+                        # NOTE option 2) group everything into properties then use idx to refer to a certain instance
+                        # NOTE option 3) can just make some helpers to intuitively refer to stuff too. that seems smart.
+                # NOTE 이거 앱으로 어떻게 만들지 진짜? ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ
                 elif self.transform == "mvp":
-                    # TODO selection temporal substance
-                    # TODO parse information into a consistent data type (possibly dict. verbose is good.)
-                    # NOTE 이거 앱으로 어떻게 만들지 진짜? ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ
 
                     objects = await asyncio.to_thread(self.object.detect, img)
                     texts = await asyncio.to_thread(self.text.detect, img)
-                    hands = await asyncio.to_thread(hands.process, img)
+                    hand = await asyncio.to_thread(self.hand.detect, img, select='naive')
+                    target = self.hand.position(hand)
 
-                    selected = select(objects, texts, hands)
+                    selection = select(objects, texts, target)
 
-                    # TODO: combine all viz into draw_viz
-                    drawn = draw_viz(img, objects=objects, texts=texts[0], hands=hands, selection=selected)
-                    # drawn = self.object.draw(drawn, *objects) # temp
-                    # drawn = visualize_hands(hands, drawn) # temp
+                    drawn = draw_viz(img, objects=objects, texts=texts, hands=hand, selection=selection, cursor=target)
                     
                     result = drawn
                     
