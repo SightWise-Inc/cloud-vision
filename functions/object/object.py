@@ -12,8 +12,8 @@ import onnxruntime
 # NOTE absolute import from server-level scripts (for prod)
 from functions.object.classes import CLASSES 
 from functions.object.utils import nms, compute_iou, xywh2xyxy
-# # NOTE absolute import from package (for dev)
 
+# # NOTE absolute import from package (for dev)
 # from server.functions.object.classes import CLASSES 
 # from server.functions.object.utils import nms, compute_iou, xywh2xyxy
 
@@ -28,7 +28,7 @@ EP_list = ['CUDAExecutionProvider', 'CPUExecutionProvider']
 # model_path2 = './server/functions/object/models/yolov8n_640.onnx' # when used as a script (dev)
 # medium
 model_path = './models/yolov8m_640.onnx' # when used as a module
-model_path2 = './server/functions/object/models/yolov8m_640.onnx' # when used as a script (dev)
+model_path2 = './functions/object/models/yolov8m_640.onnx' # when used as a script (dev)
 
 try: 
     session = onnxruntime.InferenceSession(model_path, opt_options, providers=EP_list)

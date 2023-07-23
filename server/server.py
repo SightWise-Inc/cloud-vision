@@ -14,7 +14,7 @@ from av import VideoFrame
 # computer vision
 import cv2
 # local modules
-from tracks import VideoTransformTrack
+from tracks import VideoTransformTrack, AudioOutputTrack
 
 
 ROOT = os.path.dirname(__file__)
@@ -70,20 +70,17 @@ async def offer(request):
     @pc.on("track")
     def on_track(track):
         log_info("Track %s received", track.kind)
+        loop = asyncio.get_event_loop()
+        audio_track = AudioOutputTrack(loop=loop)
+        video_track = VideoTransformTrack(relay.subscribe(track), transform=params["video_transform"], loop=loop)
 
         if track.kind == "audio":
-            player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
-            pc.addTrack(player.audio)
-            # recorder.addTrack(track)
-            pass
+            pc.addTrack(audio_track)
         elif track.kind == "video":
-            pc.addTrack(
-                VideoTransformTrack(
-                    relay.subscribe(track), transform=params["video_transform"]
-                )
-            )
-            # if args.record_to:
-            #     recorder.addTrack(relay.subscribe(track))
+            pc.addTrack(video_track)
+
+            def speak(text):
+                audio_track.audio_generator(text)
 
         @track.on("ended")
         async def on_ended():

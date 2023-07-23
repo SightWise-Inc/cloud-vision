@@ -4,6 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 
+from functions.object.object import ObjectDetector, xywh2xyxy
+from functions.text.text import TextDetector
+from functions.hand.hand import HandDetector
+from functions.viz.viz import highlight, apply_highlight, add_mask, draw_viz
+
 
 # MIN_DIST = 200
 MIN_DIST = 1000
@@ -41,33 +46,33 @@ def select(objects, texts, target=None):
 
     closest = None
     min_dist = MIN_DIST
+    if objects: 
+        if objects['boxes'].size > 0:
 
-    if objects['boxes'].size > 0:
+            # OPTION 1
+            # for idx, object in enumerate(objects['boxes']):
+            #     print(object) # DEBUG
+            #     # extract points
+            #     pt1 = [int(n) for n in object[0]]
+            #     pt2 = [int(n) for n in object[2]]
+            #     # select
 
-        # OPTION 1
-        # for idx, object in enumerate(objects['boxes']):
-        #     print(object) # DEBUG
-        #     # extract points
-        #     pt1 = [int(n) for n in object[0]]
-        #     pt2 = [int(n) for n in object[2]]
-        #     # select
+            # OPTION 2 (don't fully understand this one)
+            boxes = objects['boxes']
+            scores = objects['scores']
+            class_ids = objects['class_ids']
+            indices = objects['indices']
+            for (bbox, score, label) in zip(xywh2xyxy(boxes[indices]), scores[indices], class_ids[indices]):
 
-        # OPTION 2 (don't fully understand this one)
-        boxes = objects['boxes']
-        scores = objects['scores']
-        class_ids = objects['class_ids']
-        indices = objects['indices']
-        for (bbox, score, label) in zip(xywh2xyxy(boxes[indices]), scores[indices], class_ids[indices]):
+                print(label, bbox) # DEBUG
+                pt1 = [bbox[0], bbox[1]]
+                pt2 = [bbox[2], bbox[3]]
 
-            print(label, bbox) # DEBUG
-            pt1 = [bbox[0], bbox[1]]
-            pt2 = [bbox[2], bbox[3]]
-
-            dist = distance([pt1, pt2], target)
-            print('Object', label, ':', dist) # DEBUG
-            if dist < min_dist: 
-                closest = { 'box': [pt1, pt2], 'name': label }
-                min_dist = dist
+                dist = distance([pt1, pt2], target)
+                print('Object', label, ':', dist) # DEBUG
+                if dist < min_dist: 
+                    closest = { 'box': [pt1, pt2], 'name': label }
+                    min_dist = dist
 
     if texts:
         for idx, text in enumerate(texts): 
@@ -168,11 +173,6 @@ def test_selection(img):
 
 
 def main():
-    from server.functions.object.object import ObjectDetector, xywh2xyxy
-    from server.functions.text.text import TextDetector
-    from server.functions.hand.hand import HandDetector
-    from server.functions.viz.viz import highlight, apply_highlight, add_mask, draw_viz
-
     # folder = './tests/test_images/text/'
     # filename = 'demodemo2.jpg'
     folder = './tests/test_images/Selection/Savanna/'

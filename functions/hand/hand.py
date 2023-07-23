@@ -25,9 +25,10 @@ class HandDetector:
     def detect(self, img, select='naive'):
         if self.img_shape is None: self.img_shape = img.shape # hacky, maybe
         hands = self.mp_hands.process(img).multi_hand_landmarks
-        if select == 'naive': return hands[0]
-        if select == 'all': return hands
-        if select == 'main': raise NotImplementedError
+        if hands:
+            if select == 'naive': return hands[0]
+            if select == 'all': return hands
+            if select == 'main': raise NotImplementedError
 
     def finger_to_landmark(self, finger):
         if type(finger) == int: ldmk_n = finger 
